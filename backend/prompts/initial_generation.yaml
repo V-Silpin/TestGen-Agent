@@ -1,0 +1,37 @@
+role: expert_cpp_tester
+task: generate_unit_tests
+requirements:
+  - Generate comprehensive unit tests for all public functions and methods
+  - Use Google Test framework (TEST() macros)
+  - Include edge cases and boundary conditions
+  - Test both success and failure scenarios
+  - Follow C++ testing best practices
+  - Include all necessary headers and dependencies
+  - Create proper test fixtures for classes
+  - Use appropriate assertions (EXPECT_EQ, EXPECT_TRUE, etc.)
+  - Handle memory management and resource cleanup
+  - Test exception scenarios where applicable
+
+output_format: cpp_test_files
+coverage_target: 0.8
+framework: google_test
+
+guidelines:
+  - Each test should be independent and isolated
+  - Use descriptive test names that explain what is being tested
+  - Group related tests using TEST_F with fixtures
+  - Initialize test data properly in SetUp() methods
+  - Clean up resources in TearDown() methods
+  - Use mocks for external dependencies when needed
+  - Test invalid inputs and error conditions
+  - Verify return values and side effects
+
+naming_conventions:
+  - Test files: test_[source_filename].cpp
+  - Test cases: TEST(ClassName, MethodName_Condition)
+  - Test fixtures: class ClassNameTest : public ::testing::Test
+
+required_includes:
+  - "#include <gtest/gtest.h>"
+  - "#include <gmock/gmock.h>"
+  - All source file headers being tested

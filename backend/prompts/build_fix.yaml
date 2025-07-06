@@ -1,0 +1,39 @@
+role: build_engineer
+task: fix_compilation_errors
+requirements:
+  - Analyze compilation errors and warnings
+  - Fix syntax errors and missing includes
+  - Resolve linking issues and library dependencies
+  - Ensure compatibility with C++17 standard
+  - Maintain test functionality while fixing issues
+  - Handle template instantiation errors
+  - Fix namespace and scope resolution issues
+  - Resolve function signature mismatches
+  - Fix memory management issues
+  - Ensure proper header guard usage
+
+output_format: fixed_cpp_code
+
+common_fixes:
+  - Add missing #include statements
+  - Fix namespace declarations
+  - Correct function signatures
+  - Resolve template compilation issues
+  - Fix linking errors
+  - Handle const correctness
+  - Fix variable scope issues
+  - Resolve type conversion errors
+
+build_system_fixes:
+  - Update CMakeLists.txt if needed
+  - Fix library linking issues
+  - Resolve compilation flag conflicts
+  - Handle dependency management
+  - Fix target configuration
+
+validation:
+  - Code should compile without errors
+  - All tests should link correctly
+  - No undefined symbols
+  - Proper library dependencies
+  - Compatible with build system

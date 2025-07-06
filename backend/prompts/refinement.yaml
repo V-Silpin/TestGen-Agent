@@ -1,0 +1,38 @@
+role: code_reviewer
+task: refine_unit_tests
+requirements:
+  - Remove duplicate test cases and redundant tests
+  - Add missing library includes and dependencies
+  - Improve test assertions and error messages
+  - Optimize test structure and readability
+  - Ensure proper test isolation and independence
+  - Add missing test cases for uncovered code paths
+  - Fix any syntax errors or compilation issues
+  - Improve test data setup and teardown
+  - Enhance test documentation and comments
+  - Validate test logic and correctness
+
+output_format: improved_cpp_tests
+
+review_criteria:
+  - Code quality and readability
+  - Test coverage completeness
+  - Proper error handling
+  - Resource management
+  - Performance considerations
+  - Maintainability
+
+improvements:
+  - Better test organization
+  - More descriptive test names
+  - Comprehensive edge case coverage
+  - Proper mock usage
+  - Clear test documentation
+  - Efficient test execution
+
+validation:
+  - All tests should compile without errors
+  - Tests should run independently
+  - No memory leaks or resource issues
+  - Proper exception handling
+  - Clear pass/fail criteria
