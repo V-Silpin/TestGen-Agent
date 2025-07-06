@@ -10,6 +10,8 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict, Annotated
 
+from dotenv import load_dotenv
+
 # State for LangGraph workflow
 class TestGenerationState(TypedDict):
     source_code: Dict[str, str]
@@ -23,12 +25,22 @@ class TestGenerationState(TypedDict):
 class LLMService:
     def __init__(self):
         # Initialize GitHub Models (using OpenAI API format)
+        load_dotenv()
         self.github_api_key = os.getenv("GITHUB_TOKEN")
-        self.github_base_url = "https://models.inference.ai.azure.com"
+        self.github_base_url = os.getenv("ENDPOINT")
+        self.model = os.getenv("MODEL_NAME")
+        
+        # Validate required environment variables
+        if not self.model:
+            raise ValueError("MODEL_NAME environment variable is required")
+        if not self.github_api_key:
+            raise ValueError("GITHUB_TOKEN environment variable is required")
+        if not self.github_base_url:
+            raise ValueError("ENDPOINT environment variable is required")
         
         # Initialize LangChain LLM with GitHub Models
         self.llm = ChatOpenAI(
-            model="gpt-4o-mini",  # GitHub Models available model
+            model=self.model,  # GitHub Models available model
             api_key=self.github_api_key,
             base_url=self.github_base_url,
             temperature=0.1,
