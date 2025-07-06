@@ -50,9 +50,7 @@ class TestGenerationResponse(BaseModel):
 
 class ProjectInfo(BaseModel):
     name: str
-    cpp_files: List[str]
-    header_files: List[str]
-    total_functions: int
-    total_classes: int
-    complexity_score: float
+    files: List[str]
+    classes: List[str]
+    functions: List[str]
     dependencies: List[str]
