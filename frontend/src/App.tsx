@@ -89,7 +89,7 @@ function App() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            C++ Test Generator
+            Unit Test Generator
           </h1>
           <p className="text-xl text-gray-600">
             Generate comprehensive unit tests for your C++ projects using AI
@@ -137,10 +137,6 @@ function App() {
             </div>
           )}
         </div>
-
-        <footer className="mt-12 text-center text-gray-500">
-          <p>&copy; 2025 C++ Test Generator. Built with React and FastAPI.</p>
-        </footer>
       </div>
     </div>
   );
