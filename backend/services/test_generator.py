@@ -20,44 +20,57 @@ class TestGenerator:
         """Analyze C++ project structure and complexity"""
         cpp_files = []
         header_files = []
-        total_functions = 0
-        total_classes = 0
+        all_functions = []
+        all_classes = []
         dependencies = set()
+        
+        # Debug: Check if project path exists
+        if not project_path.exists():
+            raise FileNotFoundError(f"Project path does not exist: {project_path}")
         
         # Scan for C++ files
         for ext in ['*.cpp', '*.cc', '*.cxx']:
-            cpp_files.extend(list(project_path.glob(ext)))
+            found_files = list(project_path.glob(ext))
+            cpp_files.extend(found_files)
         
         for ext in ['*.h', '*.hpp']:
-            header_files.extend(list(project_path.glob(ext)))
+            found_files = list(project_path.glob(ext))
+            header_files.extend(found_files)
+        
+        # Debug: Log found files
+        print(f"Found C++ files: {[str(f) for f in cpp_files]}")
+        print(f"Found header files: {[str(f) for f in header_files]}")
         
         # Analyze code complexity
         for file_path in cpp_files + header_files:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-                
-                # Count functions (simple regex)
-                functions = re.findall(r'\b\w+\s+\w+\s*\([^)]*\)\s*{', content)
-                total_functions += len(functions)
-                
-                # Count classes
-                classes = re.findall(r'\bclass\s+\w+', content)
-                total_classes += len(classes)
-                
-                # Extract includes for dependencies
-                includes = re.findall(r'#include\s*[<"]([^>"]+)[>"]', content)
-                dependencies.update(includes)
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    
+                    # Extract function names (improved regex)
+                    function_matches = re.findall(r'\b(\w+)\s+(\w+)\s*\([^)]*\)\s*{', content)
+                    for return_type, func_name in function_matches:
+                        all_functions.append(f"{return_type} {func_name}")
+                    
+                    # Extract class names
+                    class_matches = re.findall(r'\bclass\s+(\w+)', content)
+                    all_classes.extend(class_matches)
+                    
+                    # Extract includes for dependencies
+                    includes = re.findall(r'#include\s*[<"]([^>"]+)[>"]', content)
+                    dependencies.update(includes)
+            except Exception as e:
+                print(f"Error reading file {file_path}: {e}")
+                continue
         
-        # Calculate complexity score (simplified)
-        complexity_score = (total_functions * 0.5 + total_classes * 1.0) / max(len(cpp_files), 1)
+        # Combine all files for the files field
+        all_files = [str(f) for f in cpp_files + header_files]
         
         return ProjectInfo(
             name=project_path.name,
-            cpp_files=[str(f) for f in cpp_files],
-            header_files=[str(f) for f in header_files],
-            total_functions=total_functions,
-            total_classes=total_classes,
-            complexity_score=complexity_score,
+            files=all_files,
+            classes=all_classes,
+            functions=all_functions,
             dependencies=list(dependencies)
         )
     
@@ -168,6 +181,30 @@ int main() {
     
     async def _build_tests(self, project_path: Path) -> Dict[str, Any]:
         """Build the test project"""
+        # Check if CMake is available
+        try:
+            cmake_check = subprocess.run(
+                ["cmake", "--version"], 
+                capture_output=True, 
+                text=True,
+                timeout=10
+            )
+            if cmake_check.returncode != 0:
+                return {
+                    "success": False,
+                    "logs": ["CMake not found. Please install CMake and add it to PATH."]
+                }
+        except FileNotFoundError:
+            return {
+                "success": False,
+                "logs": ["CMake not found. Please install CMake and add it to PATH."]
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "logs": [f"Error checking CMake: {str(e)}"]
+            }
+        
         build_dir = project_path / "build"
         build_dir.mkdir(exist_ok=True)
         
@@ -211,10 +248,15 @@ int main() {
                 "success": False,
                 "logs": ["Build timeout"]
             }
+        except FileNotFoundError as e:
+            return {
+                "success": False,
+                "logs": [f"Required tool not found: {str(e)}"]
+            }
         except Exception as e:
             return {
                 "success": False,
-                "logs": [str(e)]
+                "logs": [f"Build error: {str(e)}"]
             }
     
     async def _generate_coverage_report(self, project_path: Path) -> Optional[CoverageReport]:
@@ -225,7 +267,25 @@ int main() {
             # Run tests first
             test_executable = build_dir / "test_runner"
             if test_executable.exists():
-                subprocess.run([str(test_executable)], cwd=build_dir, timeout=30)
+                try:
+                    subprocess.run([str(test_executable)], cwd=build_dir, timeout=30)
+                except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+                    print(f"Warning: Could not run test executable: {e}")
+            
+            # Check if gcov is available
+            try:
+                gcov_check = subprocess.run(
+                    ["gcov", "--version"], 
+                    capture_output=True, 
+                    text=True,
+                    timeout=10
+                )
+                if gcov_check.returncode != 0:
+                    print("Warning: gcov not available for coverage report")
+                    return None
+            except FileNotFoundError:
+                print("Warning: gcov not found. Coverage report will be skipped.")
+                return None
             
             # Generate coverage data
             gcov_cmd = ["gcov", "*.cpp"]
@@ -338,3 +398,49 @@ endif()
 
 enable_testing()
 """
+    
+    def check_system_requirements(self) -> Dict[str, bool]:
+        """Check if required build tools are available"""
+        requirements = {
+            "cmake": False,
+            "gcc": False,
+            "gcov": False
+        }
+        
+        # Check CMake
+        try:
+            result = subprocess.run(
+                ["cmake", "--version"], 
+                capture_output=True, 
+                text=True,
+                timeout=5
+            )
+            requirements["cmake"] = result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+        
+        # Check GCC
+        try:
+            result = subprocess.run(
+                ["gcc", "--version"], 
+                capture_output=True, 
+                text=True,
+                timeout=5
+            )
+            requirements["gcc"] = result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+        
+        # Check gcov
+        try:
+            result = subprocess.run(
+                ["gcov", "--version"], 
+                capture_output=True, 
+                text=True,
+                timeout=5
+            )
+            requirements["gcov"] = result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+        
+        return requirements
