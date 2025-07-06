@@ -39,32 +39,42 @@ async def root():
 @app.post("/api/upload-project")
 async def upload_project(files: List[UploadFile] = File(...)):
     """Upload C++ project files"""
-    project_id = str(uuid.uuid4())
-    project_path = Path(f"temp_projects/{project_id}")
-    project_path.mkdir(parents=True, exist_ok=True)
+    try:
+        project_id = str(uuid.uuid4())
+        # Use absolute path to ensure we're in the right directory
+        base_path = Path(__file__).parent / "temp_projects"
+        project_path = base_path / project_id
+        project_path.mkdir(parents=True, exist_ok=True)
+        
+        cpp_files = []
+        for file in files:
+            if file.filename and file.filename.endswith(('.cpp', '.hpp', '.h', '.cc', '.cxx')):
+                file_path = project_path / file.filename
+                with open(file_path, "wb") as f:
+                    content = await file.read()
+                    f.write(content)
+                cpp_files.append(str(file_path))
+        
+        if not cpp_files:
+            raise HTTPException(status_code=400, detail="No C++ files found")
+        
+        print(f"Uploaded files to: {project_path}")
+        print(f"C++ files: {cpp_files}")
+        
+        # Analyze project structure
+        project_info = await test_generator.analyze_project(project_path)
+        
+        active_projects[project_id] = {
+            "path": project_path,
+            "files": cpp_files,
+            "info": project_info
+        }
+        
+        return {"project_id": project_id, "files": cpp_files, "info": project_info}
     
-    cpp_files = []
-    for file in files:
-        if file.filename.endswith(('.cpp', '.hpp', '.h', '.cc', '.cxx')):
-            file_path = project_path / file.filename
-            with open(file_path, "wb") as f:
-                content = await file.read()
-                f.write(content)
-            cpp_files.append(str(file_path))
-    
-    if not cpp_files:
-        raise HTTPException(status_code=400, detail="No C++ files found")
-    
-    # Analyze project structure
-    project_info = await test_generator.analyze_project(project_path)
-    
-    active_projects[project_id] = {
-        "path": project_path,
-        "files": cpp_files,
-        "info": project_info
-    }
-    
-    return {"project_id": project_id, "files": cpp_files, "info": project_info}
+    except Exception as e:
+        print(f"Error in upload_project: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.post("/api/generate-tests/{project_id}")
 async def generate_tests(project_id: str, request: TestGenerationRequest):
@@ -146,6 +156,16 @@ async def delete_project(project_id: str):
         del active_projects[project_id]
     
     return {"message": "Project cleaned up"}
+
+@app.get("/api/system-requirements")
+async def check_system_requirements():
+    """Check if required build tools are available"""
+    requirements = test_generator.check_system_requirements()
+    return {
+        "requirements": requirements,
+        "all_available": all(requirements.values()),
+        "missing_tools": [tool for tool, available in requirements.items() if not available]
+    }
 
 if __name__ == "__main__":
     import uvicorn
