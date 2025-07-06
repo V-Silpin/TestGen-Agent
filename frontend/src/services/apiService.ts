@@ -33,6 +33,29 @@ export class ApiService {
         return response.data;
     }
 
+    static async uploadZipProject(files: FileList): Promise<UploadResponse> {
+        const formData = new FormData();
+        Array.from(files).forEach(file => {
+            formData.append('zip_file', file);
+        });
+
+        const response = await apiClient.post('/upload-zip-project', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        return response.data;
+    }
+
+    static async uploadFromGithub(githubUrl: string): Promise<UploadResponse> {
+        const response = await apiClient.post('/upload-from-github', {
+            github_url: githubUrl
+        });
+
+        return response.data;
+    }
+
     static async generateTests(
         projectId: string,
         request: TestGenerationRequest
